@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test de Autenticación</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { margin: 5px; padding: 10px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #result { margin-top: 20px; padding: 10px; background: #f5f5f5; border: 1px solid #ddd; max-height: 500px; overflow-y: auto; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { color: blue; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de Autenticación - Foro Académico</h1>
+    
+    <div>
+        <button onclick="testServer()">🖥️ Test Servidor</button>
+        <button onclick="testToken()">🔑 Test Token</button>
+        <button onclick="testAuth()">🔐 Test Autenticación</button>
+        <button onclick="testAdmin()">👑 Test Admin/Profesor</button>
+        <button onclick="testCreateForum()">📝 Test Crear Foro</button>
+        <button onclick="clearSession()">🧹 Limpiar Sesión</button>
+        <button onclick="goToLogin()">🚪 Ir a Login</button>
+    </div>
+    
+    <div id="result"></div>
+    
+    <script src="js/api.js"></script>
+    <script>
+        const api = window.api || new ApiService();
+        const resultDiv = document.getElementById('result');
+        
+        function log(msg, type = 'info') {
+            console.log(msg);
+            const p = document.createElement('p');
+            p.className = type;
+            p.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            resultDiv.appendChild(p);
+            resultDiv.scrollTop = resultDiv.scrollHeight;
+        }
+        
+        async function testServer() {
+            log('🖥️ Probando conexión con el servidor...', 'info');
+            try {
+                const response = await fetch('/diagnostico');
+                const data = await response.json();
+                log(`✅ Servidor ONLINE`, 'success');
+                log(`📊 Status: ${data.server.status}`, 'info');
+                log(`⏰ Uptime: ${data.server.uptime}s`, 'info');
+                log(`🔐 JWT_SECRET: ${data.environment.JWT_SECRET}`, 'info');
+                log(`🗄️ DB: ${data.environment.DB_NAME}`, 'info');
+            } catch (error) {
+                log(`❌ Error conectando al servidor: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testToken() {
+            log('🔍 Examinando token en localStorage...', 'info');
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            if (!token) {
+                log('❌ NO hay token en localStorage', 'error');
+                return;
+            }
+            
+            log(`✅ Token encontrado (${token.length} caracteres)`, 'success');
+            log(`🔑 Token preview: ${token.substring(0, 30)}...`, 'info');
+            
+            try {
+                const parts = token.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    log(`✅ Token JWT válido`, 'success');
+                    log(`👤 ID: ${payload.id}`, 'info');
+                    log(`📧 Email: ${payload.email}`, 'info');
+                    log(`🎭 Rol: ${payload.rol}`, 'info');
+                    log(`⏰ Expira: ${new Date(payload.exp * 1000).toLocaleString()}`, 'info');
+                    log(`⏳ Restante: ${Math.floor((payload.exp * 1000 - Date.now()) / 60000)} minutos`, 'info');
+                } else {
+                    log('⚠️ Token no tiene formato JWT estándar', 'warning');
+                }
+            } catch (e) {
+                log(`❌ Error decodificando token: ${e.message}`, 'error');
+            }
+            
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    log(`👤 Datos de usuario: ${userData.nombre} (${userData.email})`, 'info');
+                } catch (e) {
+                    log('❌ Error parseando datos de usuario', 'error');
+                }
+            }
+        }
+        
+        async function testAuth() {
+            log('🔐 Probando autenticación con el servidor...', 'info');
+            try {
+                const response = await api.request('/foros/test-auth');
+                log(`✅ Autenticación EXITOSA`, 'success');
+                log(`👤 Usuario autenticado: ${response.user.email} (Rol: ${response.user.rol})`, 'info');
+            } catch (error) {
+                log(`❌ Error de autenticación: ${error.message}`, 'error');
+                log(`🔍 Detalles: ${JSON.stringify(error)}`, 'error');
+            }
+        }
+        
+        async function testAdmin() {
+            log('👑 Probando permisos de admin/profesor...', 'info');
+            try {
+                const response = await api.request('/foros/test-admin');
+                log(`✅ Permisos CONFIRMADOS`, 'success');
+                log(`🎭 Rol del usuario: ${response.user.rol}`, 'info');
+            } catch (error) {
+                log(`❌ Error de permisos: ${error.message}`, 'error');
+                log(`🔍 Este usuario NO tiene permisos de admin/profesor`, 'error');
+            }
+        }
+        
+        async function testCreateForum() {
+            log('📝 Probando creación de foro...', 'info');
+            
+            // Obtener usuario actual
+            const userData = api.getUserData();
+            log(`👤 Usuario actual ID: ${userData?.id || 'No encontrado'}`, 'info');
+            
+            if (!userData?.id) {
+                log('❌ No hay usuario logueado', 'error');
+                return;
+            }
+            
+            const forumData = {
+                titulo: "Foro de Prueba - " + new Date().toLocaleTimeString(),
+                descripcion: "Este es un foro de prueba creado desde el test de autenticación",
+                categoria_id: 1,
+                tipo: "discusion",
+                etiquetas: ["prueba", "test", "autenticacion"],
+                privado: false,
+                usuario_id: userData.id
+            };
+            
+            log(`📦 Datos a enviar:`, 'info');
+            log(JSON.stringify(forumData, null, 2), 'info');
+            
+            try {
+                const response = await api.request('/foros', {
+                    method: 'POST',
+                    body: forumData
+                });
+                log(`✅ FORO CREADO EXITOSAMENTE`, 'success');
+                log(`📝 ID del foro: ${response.foro?.id}`, 'info');
+                log(`🏷️ Título: ${response.foro?.nombre}`, 'info');
+                log(`📅 Creado: ${new Date(response.foro?.fecha_creacion).toLocaleString()}`, 'info');
+            } catch (error) {
+                log(`❌ ERROR creando foro: ${error.message}`, 'error');
+                log(`🔍 Detalles completos: ${JSON.stringify(error, null, 2)}`, 'error');
+            }
+        }
+        
+        function clearSession() {
+            log('🧹 Limpiando sesión...', 'info');
+            api.limpiarSesion();
+            log('✅ Sesión limpiada. Token y datos de usuario eliminados.', 'success');
+        }
+        
+        function goToLogin() {
+            log('🚪 Redirigiendo a login...', 'info');
+            window.location.href = '/login.html';
+        }
+        
+        // Auto-test al cargar la página
+        window.addEventListener('load', () => {
+            log('📋 Test de Autenticación - Foro Académico', 'info');
+            log('🔍 Pulsa los botones para realizar pruebas', 'info');
+            testServer();
+        });
+    </script>
+</body>
+</html>

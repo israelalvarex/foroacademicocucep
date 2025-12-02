@@ -217,4 +217,5 @@ exports.getUsuarioActual = async (req, res) => {
     console.error('Error obteniendo usuario:', error);
     res.status(500).json({ mensaje: 'Error obteniendo usuario', error: error.message });
   }
-};
+}
+  

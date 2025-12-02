@@ -10,168 +10,404 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <style>
     body { font-family: 'Inter', sans-serif; }
+    .foro-item {
+      transition: all 0.3s ease;
+      border-left: 4px solid #3b82f6;
+    }
+    .foro-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .empty-state {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
   </style>
 </head>
 
-<body class="bg-gray-100 text-gray-900">
+<body class="bg-gray-50 text-gray-900">
   
   <!-- NAVBAR -->
-  <header class="sticky top-0 bg-white/90 backdrop-blur-sm shadow-sm">
-    <div class="max-w-5xl mx-auto px-4 flex items-center justify-between h-16">
-      <h1 class="text-xl font-bold text-[#111418]">CUCEP</h1>
+  <header class="sticky top-0 bg-white/95 backdrop-blur-sm shadow-sm z-50">
+    <div class="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-blue-600 rounded-lg"></div>
+        <h1 class="text-xl font-bold text-[#111418]">CUCEP Foros</h1>
+      </div>
 
-      <nav class="hidden md:flex gap-8 text-sm font-medium">
-        <a class="hover:text-blue-600" href="inicio.html">Inicio</a>
-        <a class="text-blue-600 font-bold" href="foro.html">Foros</a>
-        <a class="hover:text-blue-600" href="canal.html">Canales</a>
-        <a class="logout-btn hover:text-red-600" href="#">Cerrar sesión</a>
+      <nav class="hidden md:flex gap-6 text-sm font-medium">
+        <a class="text-gray-700 hover:text-blue-600 transition" href="inicio.html">🏠 Inicio</a>
+        <a class="text-blue-600 font-semibold border-b-2 border-blue-600" href="foro.html">💬 Foros</a>
+        <a class="text-gray-700 hover:text-blue-600 transition" href="canal.html">📢 Canales</a>
+        <a class="logout-btn text-gray-700 hover:text-red-600 transition" href="login.html">🚪 Cerrar sesión</a>
       </nav>
     </div>
   </header>
 
-  <!-- CONTENIDO -->
-  <main class="max-w-4xl mx-auto py-10 px-4">
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="max-w-5xl mx-auto py-8 px-4">
+    
+    <!-- Header con información de categoría -->
+    <div id="categoria-info" class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200">
+      <div class="animate-pulse">
+        <div class="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+        <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+      </div>
+    </div>
 
-    <!-- Información de categoría -->
-    <div id="categoria-info" class="mb-10 text-center">
-      <h2 class="text-4xl font-black tracking-tight">Cargando categoría...</h2>
-      <p class="text-gray-600 mt-2">Por favor espera...</p>
+    <!-- Estadísticas y acciones -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div id="estadisticas" class="text-sm text-gray-600">
+        <span id="contador-foros" class="font-semibold text-blue-600">Cargando...</span>
+      </div>
+      <button onclick="volverAForos()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition flex items-center gap-2">
+        ← Volver a foros
+      </button>
     </div>
 
     <!-- Lista de foros -->
-    <div id="lista-foros" class="space-y-6"></div>
+    <div id="contenedor-foros">
+      <!-- Estado de carga -->
+      <div id="estado-carga" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p class="text-gray-500">Cargando foros...</p>
+      </div>
+      
+      <!-- Lista de foros se insertará aquí -->
+      <div id="lista-foros" class="space-y-4 hidden"></div>
+      
+      <!-- Estado vacío -->
+      <div id="estado-vacio" class="hidden">
+        <div class="empty-state rounded-2xl p-10 text-center">
+          <div class="text-6xl mb-4">📭</div>
+          <h3 class="text-xl font-semibold text-gray-800 mb-2">No hay foros en esta categoría</h3>
+          <p class="text-gray-600 mb-6 max-w-md mx-auto">Sé el primero en crear un foro en esta categoría.</p>
+          <button onclick="crearNuevoForo()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+            + Crear nuevo foro
+          </button>
+        </div>
+      </div>
+    </div>
 
-    <!-- Error -->
-    <div id="mensaje-error" class="hidden text-center mt-10">
-      <p class="text-red-600 text-lg font-bold">⚠ No se pudo cargar esta categoría.</p>
-      <p id="error-detalles" class="text-sm text-gray-600 mt-2"></p>
-      <button onclick="probarEndpoint()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition mr-2">
-        Probar conexión
-      </button>
-      <button onclick="location.reload()" class="mt-4 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition">
-        Reintentar
-      </button>
+    <!-- Mensaje de error -->
+    <div id="mensaje-error" class="hidden bg-red-50 border border-red-200 rounded-xl p-6 mt-8">
+      <div class="flex items-start gap-3">
+        <div class="text-red-600 text-xl">⚠️</div>
+        <div>
+          <h3 class="font-semibold text-red-800 mb-2">Error al cargar la categoría</h3>
+          <p id="error-detalles" class="text-red-700 text-sm mb-4"></p>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="reintentarCarga()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition text-sm">
+              Reintentar
+            </button>
+            <button onclick="probarEndpoint()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition text-sm">
+              Probar conexión
+            </button>
+            <button onclick="volverAForos()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition text-sm">
+              Volver a foros
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
   </main>
 
-  <!-- Scripts backend -->
+  <!-- Footer -->
+  <footer class="mt-12 py-6 border-t border-gray-200 bg-white">
+    <div class="max-w-5xl mx-auto px-4 text-center text-sm text-gray-500">
+      <p>© 2024 CUCEP - Centro Universitario de Ciencias Exactas y Profesionales</p>
+      <p class="mt-2">Sistema de foros académicos - Versión 1.0</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
 
-  <!-- LÓGICA -->
+  <!-- LÓGICA DE LA PÁGINA -->
   <script>
-    // Función para probar endpoints
-    async function probarEndpoint() {
+    // Variables globales
+    let categoriaId = null;
+    let categoriaData = null;
+
+    // Función para obtener ID de categoría de la URL
+    function obtenerIdCategoria() {
       const params = new URLSearchParams(window.location.search);
-      const categoriaId = params.get('id');
+      const id = params.get('id');
+      
+      if (!id) {
+        mostrarError('No se especificó ID de categoría en la URL');
+        return null;
+      }
+      
+      return id;
+    }
+
+    // Función para volver a la página de foros
+    function volverAForos() {
+      window.location.href = 'foro.html';
+    }
+
+    // Función para crear nuevo foro
+    function crearNuevoForo() {
+      if (categoriaId) {
+        window.location.href = `crear_foro.html?categoria_id=${categoriaId}`;
+      } else {
+        window.location.href = 'crear_foro.html';
+      }
+    }
+
+    // Función para probar endpoints de diagnóstico
+    async function probarEndpoint() {
+      if (!categoriaId) return;
       
       const endpoints = [
         `/foros/categoria/${categoriaId}`,
-        `/categoria/${categoriaId}`,
         `/categorias/${categoriaId}`
       ];
       
+      let resultados = [];
+      
       for (const endpoint of endpoints) {
         try {
-          console.log(`Probando: ${endpoint}`);
-          const response = await fetch(`http://localhost:3000/api${endpoint}`);
-          console.log(`Respuesta para ${endpoint}:`, response.status, response.statusText);
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Datos recibidos:', data);
-            alert(`✅ Éxito con: ${endpoint}\n\nCategoría: ${data.nombre}`);
-            return;
-          }
+          const response = await api.request(endpoint);
+          resultados.push(`✅ ${endpoint}: ${response.success ? 'OK' : 'Error'}`);
         } catch (error) {
-          console.log(`Error con ${endpoint}:`, error.message);
+          resultados.push(`❌ ${endpoint}: ${error.message}`);
         }
       }
-      alert('❌ Ningún endpoint funcionó. Revisa la consola para más detalles.');
+      
+      alert('Resultados de prueba:\n\n' + resultados.join('\n'));
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      console.log("Página cargada, iniciando obtención de categoría...");
+    // Función para mostrar/ocultar estados
+    function mostrarEstado(estado) {
+      document.getElementById('estado-carga').classList.add('hidden');
+      document.getElementById('lista-foros').classList.add('hidden');
+      document.getElementById('estado-vacio').classList.add('hidden');
+      document.getElementById('mensaje-error').classList.add('hidden');
+      
+      if (estado === 'cargando') {
+        document.getElementById('estado-carga').classList.remove('hidden');
+      } else if (estado === 'foros') {
+        document.getElementById('lista-foros').classList.remove('hidden');
+      } else if (estado === 'vacio') {
+        document.getElementById('estado-vacio').classList.remove('hidden');
+      } else if (estado === 'error') {
+        document.getElementById('mensaje-error').classList.remove('hidden');
+      }
+    }
 
-      const params = new URLSearchParams(window.location.search);
-      const categoriaId = params.get('id');
-      console.log("ID de categoría obtenido de URL:", categoriaId);
+    // Función para mostrar error
+    function mostrarError(mensaje) {
+      document.getElementById('error-detalles').textContent = mensaje;
+      mostrarEstado('error');
+    }
 
-      if (!categoriaId) {
-        document.getElementById('categoria-info').innerHTML =
-          `<h2 class="text-3xl font-bold text-red-600">Categoría no especificada.</h2>
-           <p class="text-gray-600 mt-2">Regresa a la <a href="foro.html" class="text-blue-600 underline">página de foros</a></p>`;
+    // Función para reintentar carga
+    function reintentarCarga() {
+      cargarCategoria();
+    }
+
+    // Función para formatear fecha
+    function formatearFecha(fechaString) {
+      const fecha = new Date(fechaString);
+      return fecha.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+
+    // Función para renderizar información de la categoría
+    function renderizarCategoria(categoria) {
+      const contenedor = document.getElementById('categoria-info');
+      contenedor.innerHTML = `
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <span class="text-white font-bold text-lg">${categoria.nombre.charAt(0)}</span>
+              </div>
+              <div>
+                <h1 class="text-3xl font-bold text-gray-900">${categoria.nombre}</h1>
+                <p class="text-gray-600 mt-1">${categoria.descripcion || 'Sin descripción disponible'}</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-4 mt-4">
+              <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                #${categoria.slug || 'categoria'}
+              </span>
+              <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                Orden: ${categoria.orden || 1}
+              </span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Función para renderizar lista de foros
+    function renderizarForos(foros) {
+      const contenedor = document.getElementById('lista-foros');
+      const estadisticas = document.getElementById('contador-foros');
+      
+      // Actualizar contador
+      estadisticas.textContent = `${foros.length} ${foros.length === 1 ? 'foro' : 'foros'}`;
+      
+      if (foros.length === 0) {
+        mostrarEstado('vacio');
         return;
       }
-
-      try {
-        console.log("Intentando obtener categoría...");
+      
+      contenedor.innerHTML = '';
+      
+      foros.forEach(foro => {
+        // Formatear fecha relativa
+        const fechaCreacion = new Date(foro.fecha_creacion);
+        const ahora = new Date();
+        const diferenciaHoras = Math.floor((ahora - fechaCreacion) / (1000 * 60 * 60));
+        let fechaTexto = '';
         
-        // PRUEBA DIRECTA: Abre la consola y prueba manualmente
-        console.log("Para probar manualmente, escribe en la consola:");
-        console.log(`1. fetch('http://localhost:3000/api/foros/categoria/${categoriaId}')`);
-        console.log(`2. O prueba con: api.request('/foros/categoria/${categoriaId}')`);
+        if (diferenciaHoras < 24) {
+          fechaTexto = `${diferenciaHoras} ${diferenciaHoras === 1 ? 'hora' : 'horas'}`;
+        } else if (diferenciaHoras < 168) {
+          fechaTexto = `${Math.floor(diferenciaHoras / 24)} ${Math.floor(diferenciaHoras / 24) === 1 ? 'día' : 'días'}`;
+        } else {
+          fechaTexto = formatearFecha(foro.fecha_creacion);
+        }
         
-        // Intentar con el método del api.js
-        const categoria = await api.request(`/foros/categoria/${categoriaId}`);
-        console.log("Categoría obtenida:", categoria);
-
-        // Mostrar info de la categoría
-        document.getElementById('categoria-info').innerHTML = `
-          <h2 class="text-4xl font-black">${categoria.nombre}</h2>
-          <p class="text-gray-600 mt-2">${categoria.descripcion || "Sin descripción disponible"}</p>
+        const html = `
+          <div class="foro-item bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-blue-300">
+            <div class="flex flex-col lg:flex-row lg:items-start gap-4">
+              <div class="flex-1">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">
+                      <a href="canal.html?foro=${foro.id}" class="hover:text-blue-600 transition">
+                        ${foro.nombre || foro.titulo || 'Foro sin nombre'}
+                      </a>
+                    </h3>
+                    <p class="text-gray-600 mb-4">${foro.descripcion || 'Sin descripción'}</p>
+                    
+                    <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                      <div class="flex items-center gap-1">
+                        <span class="text-blue-600">👤</span>
+                        <span>${foro.autor_nombre || 'Usuario'} ${foro.autor_apellido || ''}</span>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <span class="text-green-600">💬</span>
+                        <span>${foro.respuestas || 0} respuestas</span>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <span class="text-purple-600">👁️</span>
+                        <span>${foro.vistas || 0} vistas</span>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <span class="text-gray-600">🕐</span>
+                        <span>hace ${fechaTexto}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="mt-4 lg:mt-0">
+                    <a href="canal.html?foro=${foro.id}" 
+                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+                      <span>Abrir foro</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         `;
+        
+        contenedor.insertAdjacentHTML('beforeend', html);
+      });
+      
+      mostrarEstado('foros');
+    }
 
-        // Contenedor
-        const contenedor = document.getElementById('lista-foros');
+    // Función principal para cargar categoría
+    async function cargarCategoria() {
+      categoriaId = obtenerIdCategoria();
+      if (!categoriaId) return;
+      
+      mostrarEstado('cargando');
+      
+      try {
+        console.log(`📂 Cargando categoría ID: ${categoriaId}`);
+        
+        // Cargar datos de la categoría
+        const respuesta = await api.request(`/foros/categoria/${categoriaId}`);
+        console.log('📨 Datos recibidos:', respuesta);
+        
+        if (respuesta.success) {
+          categoriaData = respuesta;
+          
+          // Renderizar información de la categoría
+          renderizarCategoria(respuesta.categoria);
+          
+          // Renderizar foros
+          renderizarForos(respuesta.foros || []);
+          
+        } else {
+          mostrarError(`Error del servidor: ${respuesta.mensaje}`);
+        }
+        
+      } catch (error) {
+        console.error('❌ Error completo:', error);
+        
+        let mensajeError = error.message;
+        if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+          mensajeError = 'Error de conexión. Verifica que el servidor esté corriendo en http://localhost:3000';
+        } else if (error.message.includes('404')) {
+          mensajeError = 'Categoría no encontrada. Es posible que haya sido eliminada.';
+        }
+        
+        mostrarError(mensajeError);
+        
+        // Mostrar instrucciones de depuración en consola
+        console.log('\n🔧 INSTRUCCIONES PARA DEPURAR:');
+        console.log(`1. Abre: http://localhost:3000/api/foros/categoria/${categoriaId}`);
+        console.log('2. Verifica que el servidor esté corriendo');
+        console.log('3. Revisa la consola del servidor Node.js para errores');
+        console.log('4. Verifica que la categoría exista en la base de datos');
+      }
+    }
 
-        // Si no hay foros
-        if (!categoria.foros || categoria.foros.length === 0) {
-          contenedor.innerHTML =
-            `<div class="bg-white p-8 rounded-lg shadow text-center">
-              <p class="text-gray-500 text-lg">📭 No hay foros creados en esta categoría.</p>
-            </div>`;
+    // Inicializar cuando el DOM esté cargado
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('🚀 Página de categoría cargada');
+      
+      // Verificar autenticación
+      try {
+        const usuario = await api.getUserData();
+        if (!usuario) {
+          window.location.href = 'login.html';
           return;
         }
-
-        // Renderizar foros
-        categoria.foros.forEach(foro => {
-          const html = `
-            <div class="bg-white p-6 rounded-lg shadow border border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 class="text-lg font-bold text-[#111418]">${foro.nombre}</h3>
-                <p class="text-gray-600 mt-1">${foro.descripcion || ""}</p>
-              </div>
-
-              <a href="canal.html?foro=${foro.id}">
-                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition">
-                  Entrar
-                </button>
-              </a>
-            </div>
-          `;
-          contenedor.insertAdjacentHTML('beforeend', html);
-        });
-
       } catch (error) {
-        console.error("Error completo:", error);
-        
-        // Mostrar mensaje de error detallado
-        document.getElementById('categoria-info').innerHTML = `
-          <h2 class="text-3xl font-bold text-red-600">Error al cargar categoría</h2>
-          <p class="text-gray-600 mt-2">${error.message}</p>
-        `;
-        
-        document.getElementById('error-detalles').textContent = 
-          `URL intentada: http://localhost:3000/api/foros/categoria/${categoriaId}`;
-        document.getElementById('mensaje-error').classList.remove('hidden');
-        
-        // Mostrar instrucciones en consola
-        console.log("\n⚠️ INSTRUCCIONES PARA DEPURAR:");
-        console.log("1. Abre http://localhost:3000/api/foros/categoria/" + categoriaId);
-        console.log("2. Verifica que el servidor esté corriendo");
-        console.log("3. Revisa las rutas en tu index.js/app.js");
-        console.log("4. Verifica que el método obtenerCategoriaConForos exista en forosController.js");
+        console.warn('⚠️ No se pudo verificar autenticación:', error);
+      }
+      
+      // Cargar categoría
+      await cargarCategoria();
+    });
+
+    // Función para logout
+    document.addEventListener('DOMContentLoaded', () => {
+      const logoutBtn = document.querySelector('.logout-btn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = 'login.html';
+        });
       }
     });
   </script>

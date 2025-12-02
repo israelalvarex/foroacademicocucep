@@ -1,54 +1,68 @@
-// routes/foros.js
+// routes/foros.js - VERSIÓN SIMPLIFICADA Y CORRECTA
 const express = require('express');
 const router = express.Router();
 const forosController = require('../controllers/forosController');
-const { verificarToken, adminOProfesor } = require('../middlewares/authMiddleware');
+const { verificarToken } = require('../middlewares/authMiddleware');
 
 // ===============================
-//     RUTAS DE CATEGORÍAS
+// RUTAS DE FOROS - ORDEN SIMPLIFICADO
 // ===============================
 
-// Obtener todas las categorías
+// Middleware de debug
+router.use((req, res, next) => {
+  console.log(`📂 [Foros Route] Ruta: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// Rutas básicas
+router.get('/', forosController.obtenerForos);
+router.get('/recientes', forosController.obtenerForosRecientes);
+router.get('/estadisticas', forosController.obtenerEstadisticas);
 router.get('/categorias', forosController.obtenerCategorias);
-
-// Obtener categoría específica con sus foros
 router.get('/categoria/:id', forosController.obtenerCategoriaConForos);
 
-// ===============================
-//     RUTAS DE FOROS
-// ===============================
-
-// Obtener foro por ID (individual)
+// Rutas de foro individual
 router.get('/foro/:id', forosController.obtenerForoPorId);
-
-// Crear foro (solo admin / profesor)
-router.post('/foro', verificarToken, adminOProfesor, forosController.crearForo);
+router.get('/:id', forosController.obtenerForoPorId);
 
 // ===============================
-//     RUTAS DE PUBLICACIONES (MENSAJES)
+// RUTAS DE MENSAJES - CRÍTICAS
 // ===============================
 
-// Obtener publicaciones de un foro (requiere autenticación)
+// POST para CREAR mensaje - DEBE estar definida
+router.post('/:id/mensaje', verificarToken, forosController.crearMensaje);
+
+// GET para OBTENER mensajes
+router.get('/:id/mensajes', verificarToken, forosController.obtenerMensajes);
+
+// Rutas alternativas por compatibilidad
+router.post('/foro/:id/mensaje', verificarToken, forosController.crearMensaje);
 router.get('/foro/:id/mensajes', verificarToken, forosController.obtenerMensajes);
 
-// Crear publicación en un foro (requiere autenticación)
-router.post('/foro/:id/mensaje', verificarToken, forosController.crearMensaje);
-
 // ===============================
-//     RUTAS DE DEBUG/DIAGNÓSTICO
+// RUTAS ADICIONALES
 // ===============================
+router.post('/', verificarToken, forosController.crearForo);
+router.post('/foro', verificarToken, forosController.crearForo);
+router.put('/:id', verificarToken, forosController.actualizarForo);
 
-// Diagnóstico completo de base de datos
-router.get('/diagnostico', forosController.diagnosticoDB);
+// Test endpoint
+router.get('/test-auth', verificarToken, (req, res) => {
+  res.json({ success: true, message: 'Autenticado', user: req.user });
+});
 
-// Verificar estructura de la base de datos
-router.get('/debug/estructura', forosController.verificarEstructuraDB);
-
-// ===============================
-//     RUTAS ALTERNATIVAS (compatibilidad)
-// ===============================
-
-// Ruta alternativa para obtener foro
-router.get('/:id', forosController.obtenerForoPorId);
+// Debug endpoint
+router.get('/debug/rutas', (req, res) => {
+  const rutas = [];
+  router.stack.forEach((layer) => {
+    if (layer.route) {
+      rutas.push({
+        path: layer.route.path,
+        methods: Object.keys(layer.route.methods)
+      });
+    }
+  });
+  res.json({ rutas });
+});
 
 module.exports = router;
